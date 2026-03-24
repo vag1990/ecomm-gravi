@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background-color: #f7f5f2;
+    color: #3a2e24;
+  }
+  
+}
+
+@theme {
+  --color-terrazo-50:  #f7f5f2;
+  --color-terrazo-100: #ede9e3;
+  --color-terrazo-200: #d9d1c5;
+  --color-terrazo-300: #c2b5a3;
+  --color-terrazo-400: #a99680;
+  --color-terrazo-500: #8f7a62;
+  --color-terrazo-600: #75614d;
+  --color-terrazo-700: #5e4d3d;
+  --color-terrazo-800: #4a3c30;
+  --color-terrazo-900: #3a2e24;
+}
