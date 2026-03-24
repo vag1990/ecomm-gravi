@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('')
@@ -25,8 +25,8 @@ export default function AdminLogin() {
           {error && <p className="text-red-500 text-sm text-center bg-red-50 p-2">{error}</p>}
           <div>
             <label className="block text-sm text-terrazo-600 mb-1">Username</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full border border-terrazo-200 p-2 focus:outline-none focus:border-terrazo-500"
@@ -34,19 +34,24 @@ export default function AdminLogin() {
           </div>
           <div>
             <label className="block text-sm text-terrazo-600 mb-1">Password</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border border-terrazo-200 p-2 focus:outline-none focus:border-terrazo-500"
             />
           </div>
-          <button 
+          <button
             type="submit"
             className="mt-4 bg-terrazo-900 text-white p-3 text-sm tracking-wider uppercase hover:bg-terrazo-800 transition-colors"
           >
             Log In
           </button>
+          <div className="text-center mt-2">
+            <Link to="/" className="text-xs text-terrazo-500 hover:text-terrazo-700 underline uppercase tracking-wider">
+              Volver al inicio
+            </Link>
+          </div>
         </form>
       </div>
     </div>

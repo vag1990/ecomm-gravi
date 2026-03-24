@@ -1,151 +1,182 @@
-import { useState, useEffect } from 'react'
+// src/pages/CategoryPage.jsx
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { collection, query, where, getDocs } from 'firebase/firestore'
-import { db } from '../services/firebase'
-import { useFadeIn } from '../hooks/useFadeIn'
-import { TerrazoBg } from '../components/ui/TerrazoBg'
-import { ProductCard } from '../components/ui/ProductCard'
+import { useProductsByCategory } from '../hooks/useProducts'
+import { useCart } from '../context/CartContext'
 
-const CATEGORY_INFO = {
-    mesas: { 
-        title: 'Mesas', 
-        subtitle: 'Diseño en cemento', 
-        desc: 'Nuestras mesas combinan la robustez del cemento con la delicadeza del diseño artesanal, creando piezas centrales que respiran personalidad.',
-        color: '#c2b5a3'
-    },
-    revestimientos: { 
-        title: 'Revestimientos', 
-        subtitle: 'Pisos y paredes', 
-        desc: 'Colección de placas y listones cementicios. Geometrías pensadas para dar carácter, textura y calidez a cualquier superficie.',
-        color: '#8f7a62'
-    },
-    piezas: { 
-        title: 'Piezas', 
-        subtitle: 'Arte cementicio', 
-        desc: 'Objetos esculturales y utilitarios donde la materialidad cruda del terrazo se convierte en la protagonista indiscutida del espacio.',
-        color: '#5e4d3d'
-    }
+const fmt = n => new Intl.NumberFormat('es-AR', {
+  style: 'currency', currency: 'ARS', maximumFractionDigits: 0,
+}).format(n)
+
+const CATEGORY_META = {
+  mesas:          { label: 'Mesas de terrazo',   desc: 'Diseño y funcionalidad en cemento' },
+  revestimientos: { label: 'Revestimientos',      desc: 'Piezas para pisos y paredes' },
+  piezas:         { label: 'Piezas decorativas',  desc: 'Arte cementiceo para tu espacio' },
 }
 
-export default function CategoryPage() {
-    const { category } = useParams()
-    const info = CATEGORY_INFO[category] || { title: category, subtitle: 'Colección', desc: '', color: '#c2b5a3' }
-    
-    const [products, setProducts] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [heroRef, heroVisible] = useFadeIn()
-    const [gridRef, gridVisible] = useFadeIn()
+// ── tarjeta de producto ────────────────────────────────────────────────────
+function ProductCard({ product }) {
+  const { addToCart } = useCart()
+  const [added, setAdded] = useState(false)
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            setLoading(true)
-            try {
-                const q = query(collection(db, 'products'), where('category', '==', category))
-                const querySnapshot = await getDocs(q)
-                const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-                setProducts(data)
-            } catch (err) {
-                console.error("Error cargando productos:", err)
-            } finally {
-                setLoading(false)
-            }
-        }
-        fetchProducts()
-    }, [category])
+  const handleAdd = e => {
+    e.preventDefault()
+    addToCart(product, 1)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1800)
+  }
 
-    return (
-        <div style={{ backgroundColor: '#f7f5f2', minHeight: '100vh', paddingBottom: 120 }}>
-            {/* ── HERO CATEGORÍA ── */}
-            <section style={{
-                position: 'relative',
-                minHeight: '45vh',
-                backgroundColor: info.color,
-                display: 'flex',
-                alignItems: 'center',
-                overflow: 'hidden',
-                padding: '100px 32px 64px',
-            }}>
-                <TerrazoBg color="#f7f5f2" density={40} />
-                
-                <div
-                    ref={heroRef}
-                    style={{
-                        position: 'relative', zIndex: 1,
-                        maxWidth: 1200, margin: '0 auto', width: '100%',
-                        opacity: heroVisible ? 1 : 0,
-                        transform: heroVisible ? 'none' : 'translateY(24px)',
-                        transition: 'opacity 0.8s ease, transform 0.8s ease',
-                    }}
-                >
-                    <Link to="/" style={{ 
-                        fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', 
-                        color: 'rgba(247,245,242,0.8)', textDecoration: 'none', marginBottom: 24, display: 'inline-block' 
-                    }}>
-                        ← Volver a Inicio
-                    </Link>
-                    
-                    <p style={{
-                        fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase',
-                        color: 'rgba(247,245,242,0.9)', marginBottom: 12,
-                    }}>
-                        {info.subtitle}
-                    </p>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <Link to={`/producto/${product.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+        {/* imagen placeholder con patrón */}
+        <div style={{
+          position: 'relative', height: 260,
+          backgroundColor: '#ede9e3', overflow: 'hidden', marginBottom: 14,
+        }}>
+          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', color: '#c2b5a3' }}
+            viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+            {Array.from({ length: 20 }, (_, i) => (
+              <circle key={i}
+                cx={5 + (i * 19) % 90} cy={5 + (i * 31) % 90}
+                r={0.8 + (i % 4) * 0.6} fill="currentColor"
+                opacity={0.15 + (i % 5) * 0.08}
+              />
+            ))}
+          </svg>
 
-                    <h1 style={{
-                        fontFamily: "'Cormorant Garamond', Georgia, serif",
-                        fontSize: 'clamp(48px, 6vw, 84px)',
-                        fontWeight: 300, lineHeight: 1.05,
-                        color: '#f7f5f2',
-                        margin: '0 0 24px',
-                        textTransform: 'capitalize'
-                    }}>
-                        {info.title}
-                    </h1>
+          {product.featured && (
+            <div style={{
+              position: 'absolute', top: 10, left: 10,
+              backgroundColor: '#3a2e24', color: '#f7f5f2',
+              fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
+              padding: '3px 8px',
+            }}>Destacado</div>
+          )}
 
-                    <p style={{
-                        fontSize: 16, color: 'rgba(247,245,242,0.9)', maxWidth: 500,
-                        lineHeight: 1.6, margin: 0,
-                    }}>
-                        {info.desc}
-                    </p>
-                </div>
-            </section>
-
-            {/* ── GRILLA PRODUCTOS ── */}
-            <section style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 32px' }}>
-                <div
-                    ref={gridRef}
-                    style={{
-                        opacity: gridVisible || loading ? 1 : 0,
-                        transform: gridVisible || loading ? 'none' : 'translateY(20px)',
-                        transition: 'opacity 0.6s ease, transform 0.6s ease',
-                    }}
-                >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #d9d1c5', paddingBottom: 16, marginBottom: 48 }}>
-                        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 24, color: '#3a2e24', margin: 0 }}>
-                            Catálogo
-                        </p>
-                        <p style={{ fontSize: 12, color: '#8f7a62', letterSpacing: '0.05em', margin: 0 }}>
-                            {loading ? 'Cargando...' : `${products.length} producto${products.length !== 1 ? 's' : ''}`}
-                        </p>
-                    </div>
-
-                    {loading ? (
-                        <div style={{ padding: '80px 0', textAlign: 'center', color: '#8f7a62', fontSize: 14, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                            Obteniendo piezas...
-                        </div>
-                    ) : products.length === 0 ? (
-                        <div style={{ padding: '80px 0', textAlign: 'center', color: '#8f7a62' }}>
-                            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 28, color: '#3a2e24', margin: '0 0 16px' }}>Sin resultados</p>
-                            <p>No se encontraron productos en esta categoría por el momento.</p>
-                        </div>
-                    ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '48px 32px' }}>
-                            {products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
-                        </div>
-                    )}
-                </div>
-            </section>
+          {product.stock <= 3 && product.stock > 0 && (
+            <div style={{
+              position: 'absolute', top: 10, right: 10,
+              backgroundColor: '#993C1D', color: '#f7f5f2',
+              fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase',
+              padding: '3px 8px',
+            }}>Últimas {product.stock}</div>
+          )}
         </div>
-    )
+
+        <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 500, color: '#3a2e24', margin: '0 0 3px' }}>
+          {product.name}
+        </p>
+        <p style={{ fontSize: 11, color: '#8f7a62', margin: '0 0 2px' }}>{product.material}</p>
+        <p style={{ fontSize: 11, color: '#a99680', margin: '0 0 10px' }}>{product.dims}</p>
+      </Link>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+        <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 18, fontWeight: 600, color: '#3a2e24' }}>
+          {fmt(product.price)}
+        </span>
+        <button
+          onClick={handleAdd}
+          style={{
+            backgroundColor: added ? '#3B6D11' : '#3a2e24',
+            color: '#f7f5f2', border: 'none', cursor: 'pointer',
+            fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
+            padding: '8px 14px', transition: 'background 0.3s',
+          }}
+        >
+          {added ? 'Agregado ✓' : 'Agregar'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── skeleton loader ────────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div style={{ animation: 'pulse 1.5s ease-in-out infinite' }}>
+      <div style={{ height: 260, backgroundColor: '#ede9e3', marginBottom: 14 }} />
+      <div style={{ height: 14, backgroundColor: '#ede9e3', borderRadius: 2, marginBottom: 8, width: '75%' }} />
+      <div style={{ height: 11, backgroundColor: '#ede9e3', borderRadius: 2, marginBottom: 6, width: '55%' }} />
+      <div style={{ height: 11, backgroundColor: '#ede9e3', borderRadius: 2, width: '40%' }} />
+    </div>
+  )
+}
+
+// ── CategoryPage ───────────────────────────────────────────────────────────
+export default function CategoryPage() {
+  const { category } = useParams()
+  const { products, loading, error } = useProductsByCategory(category)
+  const meta = CATEGORY_META[category] ?? { label: category, desc: '' }
+
+  return (
+    <div style={{ backgroundColor: '#f7f5f2', minHeight: '100vh' }}>
+
+      {/* banner de categoría */}
+      <div style={{
+        backgroundColor: '#3a2e24', padding: '48px 24px 40px',
+        borderBottom: '1px solid rgba(194,181,163,0.2)',
+      }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <p style={{ fontSize: 10, color: '#8f7a62', letterSpacing: '0.18em', textTransform: 'uppercase', margin: '0 0 10px' }}>
+            <Link to="/" style={{ color: '#8f7a62', textDecoration: 'none' }}>Inicio</Link>
+            {' '}·{' '}
+            <span style={{ color: '#c2b5a3' }}>{meta.label}</span>
+          </p>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 44, fontWeight: 400, color: '#f7f5f2', margin: '0 0 8px' }}>
+            {meta.label}
+          </h1>
+          <p style={{ fontSize: 14, color: '#8f7a62', margin: 0 }}>{meta.desc}</p>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px' }}>
+
+        {/* contador */}
+        {!loading && !error && (
+          <p style={{ fontSize: 12, color: '#a99680', marginBottom: 32, letterSpacing: '0.04em' }}>
+            {products.length} {products.length === 1 ? 'producto' : 'productos'}
+          </p>
+        )}
+
+        {/* error */}
+        {error && (
+          <div style={{ backgroundColor: '#FAECE7', border: '1px solid #F5C4B3', padding: '16px 20px', color: '#712B13', fontSize: 14, marginBottom: 32 }}>
+            Error al cargar los productos: {error}
+          </div>
+        )}
+
+        {/* grilla */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 36 }}>
+          {loading
+            ? Array.from({ length: 6 }, (_, i) => <SkeletonCard key={i} />)
+            : products.map(p => <ProductCard key={p.id} product={p} />)
+          }
+        </div>
+
+        {/* vacío */}
+        {!loading && !error && products.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 24, color: '#3a2e24', margin: '0 0 10px' }}>
+              No hay productos en esta categoría todavía
+            </p>
+            <p style={{ fontSize: 13, color: '#8f7a62', margin: '0 0 28px' }}>
+              Estamos preparando nuevas piezas. Volvé pronto.
+            </p>
+            <Link to="/" style={{
+              backgroundColor: '#3a2e24', color: '#f7f5f2',
+              padding: '12px 32px', fontSize: 12,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              textDecoration: 'none',
+            }}>Volver al inicio</Link>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+      `}</style>
+    </div>
+  )
 }
